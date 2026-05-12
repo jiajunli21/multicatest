@@ -15,6 +15,8 @@ class RateLimiter:
     def is_allowed(self, user_id: str) -> bool:
         key = self._key(user_id)
         count = self._client.incr(key)
+        if count == 1:
+            self._client.expire(key, 60)
         return count <= self._threshold
 
     def current_usage(self, user_id: str) -> int:
