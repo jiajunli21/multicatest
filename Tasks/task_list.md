@@ -2,7 +2,7 @@
 
 ## 待办事项
 
-- [ ] 实现基础限流逻辑 (Logic Builder 认领)
+- [x] 实现基础限流逻辑 (Logic Builder 认领)
   - 使用 Redis `INCR` 指令实现计数
   - Key 格式为 `limit:user_id:<uid>`
   - 超过阈值（100 次/分钟）返回 HTTP 429
