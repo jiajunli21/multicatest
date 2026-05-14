@@ -1,0 +1,664 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "用户积分系统 API",
+    "version": "1.0.0",
+    "description": "积分获取、消费、冻结/解冻、冻结扣减、明细查询、余额查询接口契约。基于 docs/architecture.md 与 prisma/schema.prisma。"
+  },
+  "servers": [
+    { "url": "/api/v1", "description": "API v1" }
+  ],
+  "paths": {
+    "/points/earn": {
+      "post": {
+        "tags": ["积分"],
+        "summary": "积分获取",
+        "description": "用户通过完成任务、签到、活动等方式获取积分。支持幂等，账户不存在时自动创建。",
+        "operationId": "earnPoints",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EarnRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TransactionResult" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "409": { "$ref": "#/components/responses/IdempotentConflict" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/points/spend": {
+      "post": {
+        "tags": ["积分"],
+        "summary": "积分消费",
+        "description": "扣减用户可用积分。使用行锁保证并发安全，扣减前校验余额是否充足。支持幂等。",
+        "operationId": "spendPoints",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SpendRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "消费成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TransactionResult" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/AccountNotFound" },
+          "409": { "$ref": "#/components/responses/VersionConflict" },
+          "422": { "$ref": "#/components/responses/InsufficientBalance" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/points/freeze": {
+      "post": {
+        "tags": ["积分"],
+        "summary": "积分冻结",
+        "description": "冻结用户指定数量的积分，从可用余额转入冻结余额，冻结期间积分不可消费。冻结需设置超时时间，超时后由定时任务自动释放。支持幂等。",
+        "operationId": "freezePoints",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FreezeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "冻结成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FreezeResult" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/AccountNotFound" },
+          "409": { "$ref": "#/components/responses/IdempotentConflict" },
+          "422": { "$ref": "#/components/responses/InsufficientBalance" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/points/unfreeze": {
+      "post": {
+        "tags": ["积分"],
+        "summary": "冻结解冻",
+        "description": "解冻已冻结的积分，将冻结余额转回可用余额。需校验冻结记录状态为 active。支持幂等。",
+        "operationId": "unfreezePoints",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UnfreezeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "解冻成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UnfreezeResult" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/FreezeNotFound" },
+          "409": { "$ref": "#/components/responses/IdempotentConflict" },
+          "422": { "$ref": "#/components/responses/FreezeStatusInvalid" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/points/frozen-deduct": {
+      "post": {
+        "tags": ["积分"],
+        "summary": "冻结扣减",
+        "description": "从已冻结积分中直接扣减（不退回可用余额），用于订单支付完成等场景。需校验冻结记录状态为 active。支持幂等。",
+        "operationId": "frozenDeductPoints",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FrozenDeductRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "冻结扣减成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FrozenDeductResult" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/FreezeNotFound" },
+          "409": { "$ref": "#/components/responses/IdempotentConflict" },
+          "422": { "$ref": "#/components/responses/FreezeStatusInvalid" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/points/transactions": {
+      "get": {
+        "tags": ["积分"],
+        "summary": "积分明细查询",
+        "description": "分页查询用户的积分流水明细，支持按类型和时间范围筛选。按 created_at 降序排列。",
+        "operationId": "listTransactions",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "maxLength": 64 },
+            "description": "用户ID"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["earn", "spend", "freeze", "unfreeze", "frozen_deduct"]
+            },
+            "description": "流水类型筛选"
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date-time" },
+            "description": "起始时间 (ISO 8601)"
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date-time" },
+            "description": "结束时间 (ISO 8601)"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 1, "minimum": 1 },
+            "description": "页码，从1开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 20, "minimum": 1, "maximum": 100 },
+            "description": "每页数量，上限100"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TransactionListResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/AccountNotFound" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/points/balance": {
+      "get": {
+        "tags": ["积分"],
+        "summary": "积分余额查询",
+        "description": "查询用户当前可用积分余额、冻结余额及累计统计数据。",
+        "operationId": "getBalance",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "maxLength": 64 },
+            "description": "用户ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BalanceResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/AccountNotFound" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EarnRequest": {
+        "type": "object",
+        "required": ["user_id", "amount", "idempotent_key"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "用户标识"
+          },
+          "amount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "获取积分数量，必须 > 0"
+          },
+          "idempotent_key": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "幂等键，建议格式: earn:{user_id}:{uuid_v4}"
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "备注（可选）"
+          }
+        }
+      },
+      "SpendRequest": {
+        "type": "object",
+        "required": ["user_id", "amount", "idempotent_key"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "用户标识"
+          },
+          "amount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "消费积分数量，必须 > 0"
+          },
+          "idempotent_key": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "幂等键，建议格式: spend:{user_id}:{uuid_v4}"
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "备注（可选）"
+          }
+        }
+      },
+      "FreezeRequest": {
+        "type": "object",
+        "required": ["user_id", "amount", "idempotent_key", "expires_at"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "用户标识"
+          },
+          "amount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "冻结积分数量"
+          },
+          "idempotent_key": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "幂等键，建议格式: freeze:{user_id}:{uuid_v4}"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "冻结超时时间，超时后定时任务自动解冻"
+          },
+          "remark": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "冻结原因（可选）"
+          }
+        }
+      },
+      "UnfreezeRequest": {
+        "type": "object",
+        "required": ["freeze_id", "idempotent_key"],
+        "properties": {
+          "freeze_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "冻结记录ID"
+          },
+          "idempotent_key": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "幂等键，建议格式: unfreeze:{user_id}:{uuid_v4}"
+          }
+        }
+      },
+      "FrozenDeductRequest": {
+        "type": "object",
+        "required": ["freeze_id", "idempotent_key"],
+        "properties": {
+          "freeze_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "冻结记录ID"
+          },
+          "idempotent_key": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "幂等键，建议格式: frozen_deduct:{user_id}:{uuid_v4}"
+          }
+        }
+      },
+      "TransactionResult": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "SUCCESS" },
+          "message": { "type": "string", "example": "操作成功" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "transaction_id": { "type": "integer", "format": "int64", "description": "流水记录ID" },
+              "balance_before": { "type": "integer", "format": "int64" },
+              "balance_after": { "type": "integer", "format": "int64" }
+            }
+          }
+        }
+      },
+      "FreezeResult": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "SUCCESS" },
+          "message": { "type": "string", "example": "冻结成功" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "freeze_id": { "type": "integer", "format": "int64", "description": "冻结记录ID" },
+              "balance": { "type": "integer", "format": "int64", "description": "冻结后可用余额" },
+              "frozen_balance": { "type": "integer", "format": "int64", "description": "冻结后冻结余额" },
+              "expires_at": { "type": "string", "format": "date-time", "description": "冻结超时时间" }
+            }
+          }
+        }
+      },
+      "UnfreezeResult": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "SUCCESS" },
+          "message": { "type": "string", "example": "解冻成功" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "freeze_id": { "type": "integer", "format": "int64" },
+              "status": { "type": "string", "enum": ["released"], "description": "冻结状态变为 released" },
+              "balance": { "type": "integer", "format": "int64", "description": "解冻后可用余额" },
+              "frozen_balance": { "type": "integer", "format": "int64", "description": "解冻后冻结余额" }
+            }
+          }
+        }
+      },
+      "FrozenDeductResult": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "SUCCESS" },
+          "message": { "type": "string", "example": "冻结扣减成功" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "freeze_id": { "type": "integer", "format": "int64" },
+              "status": { "type": "string", "enum": ["deducted"], "description": "冻结状态变为 deducted" },
+              "frozen_balance": { "type": "integer", "format": "int64", "description": "扣减后冻结余额" }
+            }
+          }
+        }
+      },
+      "TransactionItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "user_id": { "type": "string" },
+          "type": { "type": "string", "enum": ["earn", "spend", "freeze", "unfreeze", "frozen_deduct"], "description": "流水类型" },
+          "amount": { "type": "integer", "format": "int64" },
+          "balance_before": { "type": "integer", "format": "int64" },
+          "balance_after": { "type": "integer", "format": "int64" },
+          "freeze_id": { "type": "integer", "format": "int64", "nullable": true, "description": "关联冻结记录ID" },
+          "remark": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "TransactionListResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "SUCCESS" },
+          "message": { "type": "string", "example": "查询成功" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "total": { "type": "integer", "description": "总记录数" },
+              "page": { "type": "integer" },
+              "page_size": { "type": "integer" },
+              "items": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/TransactionItem" }
+              }
+            }
+          }
+        }
+      },
+      "BalanceResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "SUCCESS" },
+          "message": { "type": "string", "example": "查询成功" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "user_id": { "type": "string" },
+              "balance": { "type": "integer", "format": "int64", "description": "可用积分余额" },
+              "frozen_balance": { "type": "integer", "format": "int64", "description": "冻结积分余额" },
+              "total_earned": { "type": "integer", "format": "int64", "description": "累计获取积分" },
+              "total_spent": { "type": "integer", "format": "int64", "description": "累计消费积分" },
+              "version": { "type": "integer", "description": "乐观锁版本号" }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "机器可读错误码"
+          },
+          "message": {
+            "type": "string",
+            "description": "人类可读错误描述"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求参数校验失败",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "code": "POINTS_INVALID_PARAM",
+              "message": "amount 必须大于 0"
+            }
+          }
+        }
+      },
+      "AccountNotFound": {
+        "description": "积分账户不存在",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "code": "POINTS_ACCOUNT_NOT_FOUND",
+              "message": "用户积分账户不存在"
+            }
+          }
+        }
+      },
+      "InsufficientBalance": {
+        "description": "可用积分余额不足",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "code": "POINTS_INSUFFICIENT_BALANCE",
+              "message": "可用积分余额不足"
+            }
+          }
+        }
+      },
+      "IdempotentConflict": {
+        "description": "幂等键冲突，重复请求",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "code": "POINTS_IDEMPOTENT_CONFLICT",
+              "message": "重复请求，请使用原请求结果"
+            }
+          }
+        }
+      },
+      "VersionConflict": {
+        "description": "乐观锁版本冲突，并发竞争",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "code": "POINTS_VERSION_CONFLICT",
+              "message": "系统繁忙，请稍后重试"
+            }
+          }
+        }
+      },
+      "FreezeNotFound": {
+        "description": "冻结记录不存在",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "code": "POINTS_FREEZE_NOT_FOUND",
+              "message": "冻结记录不存在"
+            }
+          }
+        }
+      },
+      "FreezeStatusInvalid": {
+        "description": "冻结状态不合法（已解冻或已扣减）",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "code": "POINTS_FREEZE_STATUS_INVALID",
+              "message": "该冻结记录已解冻或已扣减"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "系统内部错误",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "code": "POINTS_INTERNAL_ERROR",
+              "message": "系统内部错误，请稍后重试"
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-error-codes": {
+    "description": "完整错误码映射表 — 与 docs/mcp_schema.md 保持一致",
+    "codes": {
+      "SUCCESS": {
+        "http_status": 200,
+        "message_zh": "操作成功"
+      },
+      "POINTS_INVALID_PARAM": {
+        "http_status": 400,
+        "message_zh": "参数校验失败",
+        "trigger": "请求参数不合法（amount ≤ 0、user_id 为空、idempotent_key 超长等）"
+      },
+      "POINTS_ACCOUNT_NOT_FOUND": {
+        "http_status": 404,
+        "message_zh": "积分账户不存在",
+        "trigger": "查询或操作未初始化的用户账户（earn 除外，earn 会自动创建）"
+      },
+      "POINTS_INSUFFICIENT_BALANCE": {
+        "http_status": 422,
+        "message_zh": "可用积分余额不足",
+        "trigger": "spend/freeze 时 balance < amount"
+      },
+      "POINTS_FREEZE_NOT_FOUND": {
+        "http_status": 404,
+        "message_zh": "冻结记录不存在",
+        "trigger": "unfreeze/frozen_deduct 时 freeze_id 不存在"
+      },
+      "POINTS_FREEZE_STATUS_INVALID": {
+        "http_status": 422,
+        "message_zh": "冻结状态不匹配",
+        "trigger": "冻结记录 status ≠ 'active'（已 released 或 deducted）"
+      },
+      "POINTS_FREEZE_EXPIRED": {
+        "http_status": 422,
+        "message_zh": "冻结已超时",
+        "trigger": "unfreeze/frozen_deduct 时 expires_at < NOW()"
+      },
+      "POINTS_IDEMPOTENT_CONFLICT": {
+        "http_status": 409,
+        "message_zh": "幂等键冲突",
+        "trigger": "idempotent_key 重复，应返回首次请求结果"
+      },
+      "POINTS_VERSION_CONFLICT": {
+        "http_status": 409,
+        "message_zh": "版本冲突，并发重试",
+        "trigger": "乐观锁 version 不匹配，客户端应重试"
+      },
+      "POINTS_INTERNAL_ERROR": {
+        "http_status": 500,
+        "message_zh": "系统内部错误",
+        "trigger": "数据库连接异常、未知运行时错误"
+      }
+    }
+  }
+}
