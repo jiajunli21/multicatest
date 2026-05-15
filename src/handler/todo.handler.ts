@@ -28,6 +28,9 @@ export function listTodos(c: Context): Response {
     if (query.page !== undefined && (isNaN(query.page) || query.page < 1)) {
       query.page = 1;
     }
+    if (query.page_size !== undefined && (isNaN(query.page_size) || query.page_size < 1)) {
+      query.page_size = 20;
+    }
     return c.json(todoService.listTodos(query as any));
   } catch (e) {
     return handleError(e);

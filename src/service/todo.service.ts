@@ -59,8 +59,10 @@ export function listTodos(query: ListTodosQuery): ListTodosResponse {
     throw new ValidationError("page_size must be at most 100");
   }
 
-  const page = Math.max(1, query.page ?? 1);
-  const pageSize = Math.min(100, Math.max(1, query.page_size ?? 20));
+  const page = query.page && !Number.isNaN(query.page) ? Math.max(1, query.page) : 1;
+  const pageSize = query.page_size && !Number.isNaN(query.page_size)
+    ? Math.min(100, Math.max(1, query.page_size))
+    : 20;
 
   const { items, total } = repo.findMany({ ...query, page, page_size: pageSize });
 
