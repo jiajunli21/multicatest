@@ -1,0 +1,605 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Todo 任务管理系统 API",
+    "version": "1.0.0",
+    "description": "Todo 任务管理系统的 RESTful API 契约，覆盖创建、查询、更新、删除任务的完整生命周期。基于 WS-3 架构文档和数据库 Schema 生成。"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "本地开发服务器"
+    }
+  ],
+  "paths": {
+    "/api/todos": {
+      "post": {
+        "operationId": "createTodo",
+        "summary": "创建任务",
+        "description": "创建一个新的 Todo 任务。title 必填且长度 1-200，description 可选且最大 2000 字符。服务端自动生成 UUID、初始状态 \"todo\"、created_at 和 updated_at。",
+        "tags": ["Todos"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTodoRequest"
+              },
+              "examples": {
+                "minimal": {
+                  "summary": "最小请求",
+                  "value": {
+                    "title": "完成周报"
+                  }
+                },
+                "withDescription": {
+                  "summary": "含描述",
+                  "value": {
+                    "title": "完成周报",
+                    "description": "汇总本周工作内容，邮件发送给团队"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "任务创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                },
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440000",
+                  "title": "完成周报",
+                  "description": "汇总本周工作内容，邮件发送给团队",
+                  "status": "todo",
+                  "created_at": "2026-05-15T08:00:00.000Z",
+                  "updated_at": "2026-05-15T08:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "titleEmpty": {
+                    "summary": "title 为空",
+                    "value": {
+                      "error": "VALIDATION_ERROR",
+                      "message": "Title is required"
+                    }
+                  },
+                  "titleTooLong": {
+                    "summary": "title 超长",
+                    "value": {
+                      "error": "VALIDATION_ERROR",
+                      "message": "Title must be at most 200 characters"
+                    }
+                  },
+                  "descriptionTooLong": {
+                    "summary": "description 超长",
+                    "value": {
+                      "error": "VALIDATION_ERROR",
+                      "message": "Description must be at most 2000 characters"
+                    }
+                  },
+                  "invalidJson": {
+                    "summary": "JSON 解析失败",
+                    "value": {
+                      "error": "INVALID_JSON",
+                      "message": "Invalid JSON in request body"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listTodos",
+        "summary": "查询任务列表",
+        "description": "分页查询任务列表，支持按状态过滤。默认 page=1、page_size=20，最大 page_size=100。按 created_at 降序排列。",
+        "tags": ["Todos"],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "按状态过滤，有效值：todo、in_progress、done。不传则返回所有状态的任务。",
+            "schema": {
+              "type": "string",
+              "enum": ["todo", "in_progress", "done"]
+            },
+            "example": "todo"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "页码，从 1 开始，默认 1，最小 1",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "example": 1
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "description": "每页条数，默认 20，最小 1，最大 100",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "example": 20
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListTodosResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "550e8400-e29b-41d4-a716-446655440000",
+                      "title": "完成周报",
+                      "description": "汇总本周工作内容",
+                      "status": "todo",
+                      "created_at": "2026-05-15T08:00:00.000Z",
+                      "updated_at": "2026-05-15T08:00:00.000Z"
+                    }
+                  ],
+                  "total": 1,
+                  "page": 1,
+                  "page_size": 20
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "查询参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalidStatus": {
+                    "summary": "无效的 status 过滤值",
+                    "value": {
+                      "error": "VALIDATION_ERROR",
+                      "message": "Invalid status filter: \"archived\". Must be todo, in_progress, or done"
+                    }
+                  },
+                  "pageSizeExceeded": {
+                    "summary": "page_size 超限",
+                    "value": {
+                      "error": "VALIDATION_ERROR",
+                      "message": "page_size must be at most 100"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/todos/{id}": {
+      "get": {
+        "operationId": "getTodo",
+        "summary": "查询任务详情",
+        "description": "根据任务 ID 查询单个任务的完整信息。任务不存在时返回 404。",
+        "tags": ["Todos"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "任务 UUID v4 标识符",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                },
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440000",
+                  "title": "完成周报",
+                  "description": "汇总本周工作内容",
+                  "status": "in_progress",
+                  "created_at": "2026-05-15T08:00:00.000Z",
+                  "updated_at": "2026-05-15T09:00:00.000Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "任务不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "NOT_FOUND",
+                  "message": "Todo with id \"550e8400-e29b-41d4-a716-446655440000\" not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTodo",
+        "summary": "删除任务",
+        "description": "根据任务 ID 硬删除任务，数据从数据库物理删除，不可恢复。任务不存在时返回 404。成功删除返回 204 No Content。",
+        "tags": ["Todos"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "任务 UUID v4 标识符",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "删除成功，无响应体"
+          },
+          "404": {
+            "description": "任务不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "NOT_FOUND",
+                  "message": "Todo with id \"550e8400-e29b-41d4-a716-446655440000\" not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/api/todos/{id}/status": {
+      "patch": {
+        "operationId": "updateTodoStatus",
+        "summary": "更新任务状态",
+        "description": "更新指定任务的状态。状态值必须是 todo、in_progress、done 之一。任意两个状态之间可直接转换，不做严格状态机限制。任务不存在时返回 404。",
+        "tags": ["Todos"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "任务 UUID v4 标识符",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusRequest"
+              },
+              "examples": {
+                "inProgress": {
+                  "summary": "开始进行",
+                  "value": {
+                    "status": "in_progress"
+                  }
+                },
+                "done": {
+                  "summary": "标记完成",
+                  "value": {
+                    "status": "done"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "状态更新成功，返回更新后的完整任务对象",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                },
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440000",
+                  "title": "完成周报",
+                  "description": "汇总本周工作内容",
+                  "status": "done",
+                  "created_at": "2026-05-15T08:00:00.000Z",
+                  "updated_at": "2026-05-15T10:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalidStatus": {
+                    "summary": "无效的状态值",
+                    "value": {
+                      "error": "VALIDATION_ERROR",
+                      "message": "Invalid status: \"archived\". Must be todo, in_progress, or done"
+                    }
+                  },
+                  "invalidJson": {
+                    "summary": "JSON 解析失败",
+                    "value": {
+                      "error": "INVALID_JSON",
+                      "message": "Invalid JSON in request body"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "任务不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "NOT_FOUND",
+                  "message": "Todo with id \"550e8400-e29b-41d4-a716-446655440000\" not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateTodoRequest": {
+        "type": "object",
+        "description": "创建任务的请求体。映射上游架构的 CreateTodoInput DTO。",
+        "required": ["title"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "任务标题，必填，1-200 字符"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "nullable": true,
+            "description": "任务描述，可选，最大 2000 字符"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateStatusRequest": {
+        "type": "object",
+        "description": "更新任务状态的请求体。映射上游架构的 UpdateStatusInput DTO。",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["todo", "in_progress", "done"],
+            "description": "新状态值，必须是 todo、in_progress 或 done。任意两个状态之间可直接转换。"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TaskResponse": {
+        "type": "object",
+        "description": "单个任务的响应对象。映射上游架构的 TaskResponse 接口和 todos 表的所有字段。",
+        "required": ["id", "title", "description", "status", "created_at", "updated_at"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "任务唯一标识，UUID v4，服务端通过 crypto.randomUUID() 生成"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "任务标题"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "nullable": true,
+            "description": "任务描述，可为 null"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["todo", "in_progress", "done"],
+            "description": "任务状态"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间，ISO 8601 UTC 格式，服务端生成"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "最后更新时间，ISO 8601 UTC 格式，每次修改时更新"
+          }
+        }
+      },
+      "ListTodosResponse": {
+        "type": "object",
+        "description": "任务列表分页响应。映射上游架构的 ListTodosResponse 接口。",
+        "required": ["items", "total", "page", "page_size"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskResponse"
+            },
+            "description": "当前页的任务列表，按 created_at 降序排列"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "符合条件的任务总数（受 status 过滤影响），用于前端计算总页数"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "当前页码"
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "每页条数"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "统一错误响应格式。所有非 2xx 响应均使用此结构。映射上游架构的 ErrorResponse 接口。",
+        "required": ["error", "message"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "机器可读的错误码，用于程序化处理",
+            "enum": ["VALIDATION_ERROR", "INVALID_JSON", "NOT_FOUND", "INTERNAL_ERROR"]
+          },
+          "message": {
+            "type": "string",
+            "description": "人类可读的错误描述，用于调试和展示"
+          }
+        },
+        "examples": [
+          {
+            "error": "VALIDATION_ERROR",
+            "message": "Title is required"
+          },
+          {
+            "error": "NOT_FOUND",
+            "message": "Todo with id \"xxx\" not found"
+          }
+        ]
+      }
+    },
+    "responses": {
+      "InternalError": {
+        "description": "服务器内部错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "INTERNAL_ERROR",
+              "message": "An unexpected error occurred"
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-contract-metadata": {
+    "source": {
+      "architecture": "docs/architecture.md",
+      "schema": "schema/todos.sql",
+      "commit": "50408a1"
+    },
+    "coverage": {
+      "endpoints": [
+        "POST /api/todos - 创建任务",
+        "GET /api/todos - 查询任务列表",
+        "GET /api/todos/{id} - 查询任务详情",
+        "PATCH /api/todos/{id}/status - 更新任务状态",
+        "DELETE /api/todos/{id} - 删除任务"
+      ],
+      "total_endpoints": 5,
+      "error_scenarios": [
+        { "code": "VALIDATION_ERROR", "http_status": 400, "triggers": ["title 为空", "title 超长", "description 超长", "无效状态值", "无效 status 过滤值", "page_size 超限"] },
+        { "code": "INVALID_JSON", "http_status": 400, "triggers": ["请求体 JSON 解析失败"] },
+        { "code": "NOT_FOUND", "http_status": 404, "triggers": ["任务不存在"] },
+        { "code": "INTERNAL_ERROR", "http_status": 500, "triggers": ["未预期的运行时错误"] }
+      ]
+    },
+    "design_decisions": [
+      "title 必填，长度 1-200",
+      "description 可选，最大长度 2000，允许 null",
+      "status 枚举值：todo、in_progress、done，任意状态间可直接转换",
+      "id 由服务端使用 crypto.randomUUID() 生成 UUID v4",
+      "created_at / updated_at 由服务端管理，客户端不可设置",
+      "分页默认 page=1、page_size=20，page_size 上限 100",
+      "列表按 created_at DESC 排序",
+      "删除为硬删除，DELETE 成功返回 204 No Content",
+      "Hono 框架 + Drizzle ORM + SQLite",
+      "统一错误响应格式 { error, message }"
+    ]
+  }
+}
