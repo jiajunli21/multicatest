@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { mockEtfConfig } from '../__mocks__';
+import { isDbAvailable } from '../data/db';
+import { getEtfScores, getLatestCalcDate } from '../data/repository';
 
 const router = Router();
 
@@ -8,11 +10,19 @@ const router = Router();
  * GET /api/v1/morning-report/config/etf-list
  *
  * 读取ETF计算样本配置（内部接口）
- * Phase 1: [mock] 返回 Mock ETF 样本列表
- * Phase 2: 桥接运营配置
+ * Phase 2: 优先从 SQLite 读取实际计算样本，[mock] 兜底
  */
 router.get('/config/etf-list', (_req: Request, res: Response) => {
-  // [mock] Phase 1 返回 Mock 配置
+  if (isDbAvailable()) {
+    const calcDate = getLatestCalcDate()!;
+    const rows = getEtfScores(calcDate);
+    const etfList = rows.map((r) => ({ code: r.etf_code, name: r.etf_name }));
+    if (etfList.length > 0) {
+      res.json({ etf_list: etfList });
+      return;
+    }
+  }
+  // [mock] 降级兜底
   res.json({ etf_list: mockEtfConfig });
 });
 

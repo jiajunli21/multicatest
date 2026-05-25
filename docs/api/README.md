@@ -1,6 +1,6 @@
 # 早盘宝 API 接口契约文档
 
-> 版本: v1.0 | Phase 1 (接口契约先行) | 分支: 260525 | 准入: .multica/admission_check.md
+> 版本: v2.0 | Phase 2 (真实数据桥接) | 分支: 260525 | 准入: .multica/admission_check.md
 
 ## 状态标注说明
 
@@ -15,14 +15,14 @@
 
 | IA-ID | 接口 | 方法 | 路径 | 状态 |
 |-------|------|------|------|------|
-| IA-001 | 早盘宝首页数据 | GET | `/api/v1/morning-report/home` | [mock] 赛道/标签 |
+| IA-001 | 早盘宝首页数据 | GET | `/api/v1/morning-report/home` | [verified] Top5+评分；[mock] 赛道/标签 |
 | IA-002 | 资讯过滤 | GET | `/api/v1/morning-report/news` | [mock] |
-| IA-003 | 历史表现 | GET | `/api/v1/morning-report/history` | [mock] |
+| IA-003 | 历史表现 | GET | `/api/v1/morning-report/history` | [verified] (DB) |
 | IA-004 | 指南内容 | GET | `/api/v1/morning-report/guide` | [mock] |
 | IA-005 | 预警订阅 | POST | `/api/v1/morning-report/subscribe` | [default] 暂默认有权限 |
-| IA-006 | 预警推送触发 | POST | `/api/v1/morning-report/push/trigger` | [default] 内部接口 |
+| IA-006 | 预警推送触发 | POST | `/api/v1/morning-report/push/trigger` | [verified] ETF数据(DB) + [default] 权限 |
 | IA-007 | 一键加自选 | POST | `/api/v1/morning-report/watchlist/add` | [default] 暂仅验证结构 |
-| IA-008 | 运营配置读取 | GET | `/api/v1/morning-report/config/etf-list` | [mock] 内部接口 |
+| IA-008 | 运营配置读取 | GET | `/api/v1/morning-report/config/etf-list` | [verified] (DB) |
 
 ## 通用约定
 

@@ -1,6 +1,8 @@
 import { Router, Response } from 'express';
 import { mockPushEtfs, mockSubscriptionStore } from '../__mocks__';
-import { PushMessageBody, PushTriggerResponse } from '../types';
+import { isDbAvailable } from '../data/db';
+import { buildTop5Result, getLatestCalcDate } from '../data/repository';
+import { PushMessageBody, PushTriggerResponse, PushEtf } from '../types';
 
 const router = Router();
 
@@ -10,7 +12,7 @@ const router = Router();
  *
  * 数据计算完成后推送消息给已订阅用户（内部触发）
  * [default] 暂默认有权限
- * Phase 1: 返回推送目标摘要，不实际推送
+ * Phase 2: 优先使用 DB 真实 ETF 数据构建推送消息，[mock] 兜底
  */
 router.post('/push/trigger', (_req, res: Response) => {
   const subscribers = Array.from(mockSubscriptionStore.entries())
@@ -28,16 +30,44 @@ router.post('/push/trigger', (_req, res: Response) => {
     return;
   }
 
+  // 构建推送 ETF 列表
+  let pushEtfs: PushEtf[];
+  let signalDate: string;
+  let marketTag: string;
+
+  if (isDbAvailable()) {
+    const calcDate = getLatestCalcDate()!;
+    const result = buildTop5Result(calcDate);
+    if (result) {
+      pushEtfs = result.top5_etfs.map((e) => ({
+        code: e.code,
+        name: e.name,
+        score: e.score,
+        sector: e.sector,
+      }));
+      signalDate = result.signal_date;
+      marketTag = result.market_tag;
+    } else {
+      pushEtfs = mockPushEtfs;
+      signalDate = '2026-05-25';
+      marketTag = '[default] 谨慎参与';
+    }
+  } else {
+    pushEtfs = mockPushEtfs;
+    signalDate = '2026-05-25';
+    marketTag = '[default] 谨慎参与';
+  }
+
   // 构建推送消息体
   const message: PushMessageBody = {
-    title: '[mock] 早盘宝每日关注',
-    etfs: mockPushEtfs,
-    signal_date: '2026-05-25',
-    market_tag: '[default] 谨慎参与',
+    title: '早盘宝每日关注',
+    etfs: pushEtfs,
+    signal_date: signalDate,
+    market_tag: marketTag,
     generated_at: new Date().toISOString(),
   };
 
-  // [mock] 模拟推送：所有用户视为成功
+  // 模拟推送：所有用户视为成功
   const delivered = subscribers.length;
   const failed = 0;
 

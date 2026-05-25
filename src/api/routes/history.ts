@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { query, validationResult } from 'express-validator';
 import { mockHistory } from '../__mocks__';
+import { isDbAvailable } from '../data/db';
+import { buildHistory, buildHistoryForDate } from '../data/repository';
 import { ApiError } from '../types';
 
 const router = Router();
@@ -10,8 +12,7 @@ const router = Router();
  * GET /api/v1/morning-report/history
  *
  * 返回历史日期推送的5个ETF及涨幅
- * Phase 1: [mock] 返回预设 Mock 历史数据
- * Phase 2: 桥接真实历史数据（数据开发落库后）
+ * Phase 2: 优先读取 SQLite 历史数据，[mock] 兜底
  */
 router.get(
   '/history',
@@ -28,8 +29,18 @@ router.get(
 
     const targetDate = req.query.date as string | undefined;
 
+    if (isDbAvailable()) {
+      if (targetDate) {
+        const day = buildHistoryForDate(targetDate);
+        res.json({ history: day ? [day] : [] });
+      } else {
+        res.json({ history: buildHistory() });
+      }
+      return;
+    }
+
+    // [mock] 降级兜底
     if (targetDate) {
-      // 查找指定日期的历史记录
       const day = mockHistory.find((h) => h.date === targetDate);
       if (!day) {
         res.json({ history: [] });
@@ -37,7 +48,6 @@ router.get(
       }
       res.json({ history: [day] });
     } else {
-      // 无日期参数返回全部历史
       res.json({ history: mockHistory });
     }
   },

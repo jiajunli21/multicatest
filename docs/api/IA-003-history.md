@@ -8,7 +8,7 @@
 | 路径 | `/api/v1/morning-report/history` |
 | 处理方式 | 新增 |
 | 权限 | [default] 无需登录 |
-| Mock | 是 [mock]（Phase 1） |
+| Mock | 否 [verified]（Phase 2 已桥接 DB 历史数据） |
 
 ## Query 参数
 
@@ -22,9 +22,9 @@
 
 | 字段路径 | 类型 | 说明 | 状态 |
 |-----------|------|------|------|
-| `history` | array | 历史记录列表，按 date 降序 | [mock] |
-| `history[].date` | string | 推送日期 (YYYY-MM-DD) | [default] |
-| `history[].etfs` | array | 当日推送的 ETF 列表 | [mock] |
+| `history` | array | 历史记录列表，按 date 降序 | [verified] |
+| `history[].date` | string | 推送日期 (YYYY-MM-DD) | [verified] |
+| `history[].etfs` | array | 当日推送的 ETF 列表 | [verified] |
 | `history[].etfs[].code` | string | ETF 代码 | [verified] |
 | `history[].etfs[].name` | string | ETF 名称 | [verified] |
 | `history[].etfs[].signal_3d_return` | string \| null | 信号后第3个交易日涨幅，不足3交易日为 null | [default] |

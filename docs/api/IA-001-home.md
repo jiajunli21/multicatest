@@ -8,7 +8,7 @@
 | 路径 | `/api/v1/morning-report/home` |
 | 处理方式 | 新增 |
 | 权限 | [default] 无需登录 |
-| Mock | 部分 [mock]（赛道、标签）；ETF分数 [default]（真实计算 + Mock 兜底） |
+| Mock | 赛道、标签 [mock]；ETF分数、排名 [verified] (SQLite DB) |
 
 ## Query 参数
 
@@ -25,8 +25,8 @@
 | `top5_etfs` | array | Top5 ETF 列表，按 score 降序 | — |
 | `top5_etfs[].code` | string | ETF 代码 | [verified] |
 | `top5_etfs[].name` | string | ETF 名称 | [verified] |
-| `top5_etfs[].score` | number | ETF 综合分数 (2位小数) | [default] |
-| `top5_etfs[].rank` | integer | 排名 (1-5) | [default] |
+| `top5_etfs[].score` | number | ETF 综合分数 (2位小数) | [verified] |
+| `top5_etfs[].rank` | integer | 排名 (1-5) | [verified] |
 | `top5_etfs[].sector` | string | 三级赛道名称 | [mock] |
 | `top5_etfs[].tags` | string[] | 个基标签列表 | [mock] |
 | `sectors` | array | 赛道分布 | — |
