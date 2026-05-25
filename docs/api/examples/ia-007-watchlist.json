@@ -1,0 +1,12 @@
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "status": "success",
+    "group_name": "20260525早盘宝",
+    "added_count": 5,
+    "total_count": 5,
+    "failed_list": []
+  },
+  "timestamp": 1716638400
+}

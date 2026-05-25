@@ -1,0 +1,89 @@
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "history": [
+      {
+        "date": "2026-05-22",
+        "etfs": [
+          {
+            "code": "17:510050",
+            "name": "华夏上证50ETF",
+            "score": 0.82,
+            "signal_3d_return": "0.0120",
+            "current_return": "0.0150"
+          },
+          {
+            "code": "17:510300",
+            "name": "华泰柏瑞沪深300ETF",
+            "score": 0.76,
+            "signal_3d_return": "--",
+            "current_return": "0.0080"
+          },
+          {
+            "code": "17:510500",
+            "name": "南方中证500ETF",
+            "score": 0.70,
+            "signal_3d_return": "0.0230",
+            "current_return": "0.0310"
+          },
+          {
+            "code": "17:159915",
+            "name": "易方达创业板ETF",
+            "score": 0.63,
+            "signal_3d_return": "-0.0050",
+            "current_return": "-0.0080"
+          },
+          {
+            "code": "17:588000",
+            "name": "华夏科创50ETF",
+            "score": 0.55,
+            "signal_3d_return": "0.0180",
+            "current_return": "0.0220"
+          }
+        ]
+      },
+      {
+        "date": "2026-05-21",
+        "etfs": [
+          {
+            "code": "17:510050",
+            "name": "华夏上证50ETF",
+            "score": 0.80,
+            "signal_3d_return": "0.0080",
+            "current_return": "0.0120"
+          },
+          {
+            "code": "17:510300",
+            "name": "华泰柏瑞沪深300ETF",
+            "score": 0.74,
+            "signal_3d_return": "0.0050",
+            "current_return": "0.0080"
+          },
+          {
+            "code": "17:510500",
+            "name": "南方中证500ETF",
+            "score": 0.68,
+            "signal_3d_return": "0.0150",
+            "current_return": "0.0230"
+          },
+          {
+            "code": "17:159915",
+            "name": "易方达创业板ETF",
+            "score": 0.61,
+            "signal_3d_return": "-0.0120",
+            "current_return": "-0.0050"
+          },
+          {
+            "code": "17:588000",
+            "name": "华夏科创50ETF",
+            "score": 0.53,
+            "signal_3d_return": "0.0100",
+            "current_return": "0.0180"
+          }
+        ]
+      }
+    ]
+  },
+  "timestamp": 1716638400
+}

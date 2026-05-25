@@ -1,0 +1,45 @@
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "total": 15,
+    "news": [
+      {
+        "title": "ETF早盘关注：市场情绪回暖，宽基ETF获资金青睐",
+        "summary": "今日早盘市场情绪回暖，多只宽基ETF获得大额资金净流入，沪深300ETF、科创50ETF成交活跃...",
+        "time": 1716634800,
+        "source": "同花顺财经",
+        "url": "https://example.com/news/001"
+      },
+      {
+        "title": "科创50ETF规模突破千亿，科技赛道持续升温",
+        "summary": "华夏科创50ETF最新规模突破1000亿元，成为又一只千亿级ETF产品，反映市场对科技创新赛道的持续看好...",
+        "time": 1716631200,
+        "source": "证券时报",
+        "url": "https://example.com/news/002"
+      },
+      {
+        "title": "创业板ETF波动加大，投资者需关注风险管理",
+        "summary": "近期创业板指数波动率上升，创业板ETF日内振幅加大，分析师建议投资者结合自身风险偏好进行配置...",
+        "time": 1716627600,
+        "source": "中国证券报",
+        "url": "https://example.com/news/003"
+      },
+      {
+        "title": "红利ETF持续走强，高股息策略受追捧",
+        "summary": "在市场不确定性增加的背景下，红利ETF表现稳健，高股息策略成为资金避风港...",
+        "time": 1716624000,
+        "source": "上海证券报",
+        "url": "https://example.com/news/004"
+      },
+      {
+        "title": "ETF互联互通扩容在即，跨境投资渠道进一步拓宽",
+        "summary": "据悉，ETF互联互通机制即将迎来新一轮扩容，更多ETF产品将被纳入交易范围...",
+        "time": 1716620400,
+        "source": "21世纪经济报道",
+        "url": "https://example.com/news/005"
+      }
+    ]
+  },
+  "timestamp": 1716638400
+}

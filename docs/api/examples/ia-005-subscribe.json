@@ -1,0 +1,9 @@
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "status": "subscribed",
+    "message": "订阅成功，您将在每个交易日早盘宝数据更新后收到推送通知"
+  },
+  "timestamp": 1716638400
+}

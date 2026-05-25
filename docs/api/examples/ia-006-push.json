@@ -1,0 +1,17 @@
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "status": "completed",
+    "signal_date": "2026-05-25",
+    "total_subscribers": 1523,
+    "success_count": 1520,
+    "failed_count": 3,
+    "failed_users": [
+      {"user_id": "user_8891", "reason": "device_not_registered"},
+      {"user_id": "user_4521", "reason": "push_token_expired"},
+      {"user_id": "user_6732", "reason": "user_opt_out"}
+    ]
+  },
+  "timestamp": 1716638400
+}
