@@ -60,19 +60,21 @@ def calc_rank_scores(
                 rank=current_rank,
                 total_count=total,
                 rank_score=round((total - current_rank) / total, 6),
+                status=calculable[k][2],
             )
 
         current_rank += (j - idx_in_ranked + 1)
         idx_in_ranked = j + 1
 
     # 不可计算的 ETF
-    for orig_idx, val, _ in not_calculable:
+    for orig_idx, val, status in not_calculable:
         results[orig_idx] = RankScore(
             etf_code=items[orig_idx][0],
             raw_value=val,
             rank=total,  # 排在最后
             total_count=total,
             rank_score=0.0,  # 不可计算，排名分数为 0
+            status=status,
         )
 
     return [r for r in results if r is not None]

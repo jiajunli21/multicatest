@@ -122,6 +122,7 @@ class RankScore:
     rank: int              # 排名 (1-based)
     total_count: int       # 参与排名总数
     rank_score: float      # (total - rank) / total
+    status: CalcStatus = CalcStatus.SUCCESS  # 原始因子计算状态
 
 
 @dataclass

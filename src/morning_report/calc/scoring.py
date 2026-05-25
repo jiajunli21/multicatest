@@ -79,7 +79,7 @@ def calc_composite_scores(
         )
 
         has_not_calculable = any(
-            r is None or r.rank_score == 0.0
+            r is None or r.status == CalcStatus.NOT_CALCULABLE
             for r in [h, m, lq, lv]
         )
         status = CalcStatus.SUCCESS if not has_not_calculable else CalcStatus.INSUFFICIENT_SAMPLE
