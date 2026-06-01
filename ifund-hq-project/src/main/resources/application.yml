@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: ifund-hq-project
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+  cache:
+    type: caffeine
+    caffeine:
+      spec: expireAfterWrite=30s,maximumSize=100
+
+server:
+  port: ${SERVER_PORT:8081}
+
+# ETF tab Caffeine cache config
+etf-tab:
+  cache:
+    name: "etfRankData"
+    ttl-seconds: 30
+    max-size: 100
+  redis:
+    key: "plateStatEtf:rank:data"
+
+logging:
+  level:
+    com.ifund.hq: INFO
