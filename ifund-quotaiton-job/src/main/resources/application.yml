@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: ifund-quotaiton-job
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+# Cron: every 60 seconds for BlockStatEtfTabTask
+block-stat-etf-tab:
+  cron: "0 * * * * ?"
+  redis:
+    key: "plateStatEtf:rank:data"
+    ttl-seconds: 120
+    lock-key: "plateStatEtf:rank:lock"
+    lock-ttl-seconds: 30
+
+# External API endpoints (mock URLs for 流程验证版)
+external:
+  fund-pool:
+    url: ${FUND_POOL_URL:http://localhost:8080/mock/quotation/fund_pool/v2/query}
+    unique-type: "etf_third_level_track_list"
+  fuyao:
+    url: ${FUYAO_URL:http://localhost:8080/mock/fuyao/query}
+  constituent-stock:
+    url: ${CONSTITUENT_URL:http://localhost:8080/mock/dataapi/relationship/v1/fetch-data}
+
+# Market codes for constituent stock filtering
+market:
+  codes: "17,33,177"
+  all-stocks-page-size: 100000
+
+logging:
+  level:
+    com.ifund.quotaiton.job: INFO
